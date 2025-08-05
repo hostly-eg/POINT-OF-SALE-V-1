@@ -6,10 +6,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
 </head>
-
-
 
 <div class="container-fluid">
     @if (session('success'))
@@ -42,7 +39,6 @@
                                 d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
                         </svg>
                     </button>
-
                 </div>
                 <div class="col-md-5 mb-2">
                     <select class="form-control select2" id="brandFilter">
@@ -86,6 +82,7 @@
                         <th>المخزون</th>
                         <th>الكمية</th>
                         <th>السعر</th>
+                        <th>سعر البيع</th>
                         <th>خصم</th>
                         <th>ضريبة</th>
                         <th> الأجمالي</th>
@@ -94,8 +91,6 @@
                 </thead>
                 <tbody id="cartBody"></tbody>
             </table>
-
-
 
             <div dir="rtl" class="mt-3 text-end mb-4">
                 <div class="d-flex align-items-center justify-content-around">
@@ -106,7 +101,6 @@
                         </h5>
                     </div>
                     <div class="d-flex flex-row-reverse">
-
                         <span id="totalAmount" class="mx-2 fs-5">0.00ج</span>
                         <h5>المبلغ الإجمالي:
                         </h5>
@@ -133,11 +127,8 @@
     </div>
 </div>
 
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
     let cart = [];
@@ -153,6 +144,7 @@
                 id,
                 name,
                 price,
+                selling_price: price,
                 qty: 1,
                 stock,
                 discount: 0,
@@ -160,6 +152,15 @@
             });
         }
         renderCart();
+    }
+
+    function updateSellingPrice(id, value) {
+        const item = cart.find(i => i.id === id);
+        const price = parseFloat(value);
+        if (item && !isNaN(price) && price >= 0) {
+            item.selling_price = price;
+            renderCart();
+        }
     }
 
     function removeItem(id) {
@@ -202,7 +203,7 @@
             totalDiscount = 0;
 
         cart.forEach(item => {
-            const subtotal = (item.price - item.discount + item.tax) * item.qty;
+            const subtotal = (item.selling_price - item.discount + item.tax) * item.qty;
             totalQty += item.qty;
             totalAmount += subtotal;
             totalDiscount += item.discount * item.qty;
@@ -221,8 +222,8 @@
                         <button onclick="increaseQty(${item.id})" class="btn btn-sm btn-outline-secondary">+</button>
                     </div>
                     </td>
-
                     <td>${item.price}</td>
+                    <td><input type="number" value="${item.selling_price}" onchange="updateSellingPrice(${item.id}, this.value)" class="form-control form-control-sm text-center" style="width: 80px;"></td>
                     <td>${item.discount}</td>
                     <td>${item.tax}</td>
                     <td>${subtotal.toFixed(2)}</td>
@@ -232,67 +233,26 @@
 
         document.getElementById('totalQty').innerText = totalQty;
         document.getElementById('totalAmount').innerText = totalAmount.toFixed(2);
-        document.getElementById('totalDiscount').innerText = totalDiscount.toFixed(2);
-        document.getElementById('netTotal').innerText = (totalAmount).toFixed(2);
     }
-</script>
-<script>
-    $(document).ready(function() {
-        $('#brandFilter').select2({
-            width: '100%',
-            dir: "rtl",
-            placeholder: "اختر براند",
-            language: {
-                noResults: function() {
-                    return "لا يوجد نتائج";
-                }
-            }
-        });
 
-        $('#categoryFilter').select2({
-            width: '100%',
-            dir: "rtl",
-            placeholder: "اختر تصنيف",
-            language: {
-                noResults: function() {
-                    return "لا يوجد نتائج";
-                }
-            }
-        });
-
-        // حدث الفلترة
-        $('#brandFilter').on('change.select2', filterProducts);
-        $('#categoryFilter').on('change.select2', filterProducts);
-        $('#productSearch').on('input', filterProducts);
-
-        function filterProducts() {
-            const brand = $('#brandFilter').val();
-            const category = $('#categoryFilter').val();
-            const search = $('#productSearch').val().toLowerCase();
-
-            document.querySelectorAll('.product-item').forEach(el => {
-                const elBrand = el.dataset.brand || '';
-                const elCategory = el.dataset.category || '';
-                const matchesBrand = !brand || elBrand === brand;
-                const matchesCategory = !category || elCategory === category;
-                const matchesSearch = el.textContent.toLowerCase().includes(search);
-
-                el.style.display = matchesBrand && matchesCategory && matchesSearch ? 'block' : 'none';
-            });
+    function prepareFormData() {
+        if (cart.length === 0) {
+            alert("السلة فارغة!");
+            return false;
         }
-    });
 
-    function resetFilters() {
-        // فضي القيم
-        $('#brandFilter').val('').trigger('change.select2');
-        $('#categoryFilter').val('').trigger('change.select2');
-        $('#productSearch').val('');
+        const jsonInput = document.getElementById("items_json");
+        const itemsData = cart.map(item => ({
+            product_id: item.id,
+            quantity: item.qty,
+            price: item.price,
+            selling_price: item.selling_price
+        }));
 
-        // نفذ الفلترة
-        filterProducts();
+        jsonInput.value = JSON.stringify(itemsData);
+        return true;
     }
-</script>
-<script>
+
     function printInvoice() {
         if (cart.length === 0) {
             alert("السلة فارغة!");
@@ -306,7 +266,7 @@
         let tableRows = '';
 
         cart.forEach(item => {
-            const subtotal = item.qty * item.price;
+            const subtotal = item.qty * item.selling_price;
             totalQty += item.qty;
             totalAmount += subtotal;
 
@@ -314,7 +274,7 @@
                 <tr>
                     <td>${item.name}</td>
                     <td>${item.qty}</td>
-                    <td>${item.price.toFixed(2)}</td>
+                    <td>${item.selling_price.toFixed(2)}</td>
                     <td>${subtotal.toFixed(2)}</td>
                 </tr>
             `;
@@ -343,7 +303,7 @@
                     <tr>
                         <th>اسم المنتج</th>
                         <th>الكمية</th>
-                        <th>السعر</th>
+                        <th>سعر البيع</th>
                         <th>الإجمالي</th>
                     </tr>
                 </thead>
@@ -373,25 +333,4 @@
     }
 </script>
 
-
-<script>
-    function prepareFormData() {
-        if (cart.length === 0) {
-            alert("السلة فارغة!");
-            return false;
-        }
-
-        const jsonInput = document.getElementById("items_json");
-        const itemsData = cart.map(item => ({
-            product_id: item.id,
-            quantity: item.qty,
-            price: item.price
-        }));
-
-        jsonInput.value = JSON.stringify(itemsData);
-        return true;
-    }
-</script>
-
-{{-- @endsection
- --}}
+{{-- @endsection --}}

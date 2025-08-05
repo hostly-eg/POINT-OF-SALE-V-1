@@ -73,7 +73,7 @@
 
         </div>
     </div>
-    <div class="col-12 bg-light min-vh-100 p-3 text-end border-start">
+    <div class="col-12 bg-light p-3 text-end border-start">
         <h5>لوحة التحكم</h5>
         <hr>
         <div class="row d-flex justify-content-around gap-4">

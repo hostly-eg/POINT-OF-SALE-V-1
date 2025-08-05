@@ -38,7 +38,7 @@ class POSController extends Controller
         DB::beginTransaction();
 
         try {
-            $total = collect($items)->sum(fn($item) => $item['price'] * $item['quantity']);
+            $total = collect($items)->sum(fn($item) => $item['selling_price'] * $item['quantity']);
 
             $sale = Sale::create([
                 'customer_name' => $request->customer_name, // <-- حفظ اسم العميل
@@ -54,10 +54,12 @@ class POSController extends Controller
 
                 // إضافة عنصر البيع
                 $sale->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity'   => $item['quantity'],
-                    'price'      => $item['price'],
+                    'product_id'     => $item['product_id'],
+                    'quantity'       => $item['quantity'],
+                    'price'          => $item['price'], // السعر الأصلي
+                    'selling_price'  => $item['selling_price'], // السعر اللي كتبه المستخدم
                 ]);
+
 
                 // تحديث الكمية
                 $product->decrement('quantity', $item['quantity']);
