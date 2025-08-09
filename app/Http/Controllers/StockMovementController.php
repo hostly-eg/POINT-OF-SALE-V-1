@@ -24,78 +24,78 @@ class StockMovementController extends Controller
         return view('stock.edit', compact('products'));
     }
 
-public function transfer(Request $request)
-{
-    $request->validate([
-        'items'              => 'required|array|min:1',
-        'items.*.product_id' => 'required|exists:products,id',
-        'items.*.qty'        => 'required|integer|min:1',
-        'items.*.direction'  => 'required|in:shop_to_store,store_to_shop',
-    ], [
-        'items.required' => 'أضف صفًا واحدًا على الأقل.',
-    ]);
+    public function transfer(Request $request)
+    {
+        $request->validate([
+            'items'              => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty'        => 'required|integer|min:1',
+            'items.*.direction'  => 'required|in:shop_to_store,store_to_shop',
+        ], [
+            'items.required' => 'أضف صفًا واحدًا على الأقل.',
+        ]);
 
-    DB::beginTransaction();
-    try {
-        foreach ($request->items as $row) {
-            $product   = Product::lockForUpdate()->findOrFail($row['product_id']);
-            $qty       = (int)$row['qty'];
-            $direction = $row['direction']; // shop_to_store | store_to_shop
+        DB::beginTransaction();
+        try {
+            foreach ($request->items as $row) {
+                $product   = Product::lockForUpdate()->findOrFail($row['product_id']);
+                $qty       = (int)$row['qty'];
+                $direction = $row['direction']; // shop_to_store | store_to_shop
 
-            // القيم القديمة (قبل أي تعديل)
-            $shopOld  = (int)$product->quantity_shop;
-            $storeOld = (int)$product->quantity_store;
+                // القيم القديمة (قبل أي تعديل)
+                $shopOld  = (int)$product->quantity_shop;
+                $storeOld = (int)$product->quantity_store;
 
-            $shopNew  = $shopOld;
-            $storeNew = $storeOld;
+                $shopNew  = $shopOld;
+                $storeNew = $storeOld;
 
-            if ($direction === 'shop_to_store') {
-                if ($shopOld < $qty) throw new \Exception("الكمية بالمحل غير كافية للمنتج: {$product->name}");
-                $shopNew  = $shopOld  - $qty;
-                $storeNew = $storeOld + $qty;
-            } else { // store_to_shop
-                if ($storeOld < $qty) throw new \Exception("الكمية بالمخزن غير كافية للمنتج: {$product->name}");
-                $storeNew = $storeOld - $qty;
-                $shopNew  = $shopOld  + $qty;
+                if ($direction === 'shop_to_store') {
+                    if ($shopOld < $qty) throw new \Exception("الكمية بالمحل غير كافية للمنتج: {$product->name}");
+                    $shopNew  = $shopOld  - $qty;
+                    $storeNew = $storeOld + $qty;
+                } else { // store_to_shop
+                    if ($storeOld < $qty) throw new \Exception("الكمية بالمخزن غير كافية للمنتج: {$product->name}");
+                    $storeNew = $storeOld - $qty;
+                    $shopNew  = $shopOld  + $qty;
+                }
+
+                // حفظ المنتج مرة واحدة
+                $product->quantity_shop  = $shopNew;
+                $product->quantity_store = $storeNew;
+                $product->save();
+
+                // سجل الحركة (StockMovement)
+                StockMovement::create([
+                    'product_id'    => $product->id,
+                    'quantity'      => $qty,
+                    'type'          => $direction,                 // قيم ثابتة مفيدة للتقارير
+                    'note'          => null,
+                    'shop_qty_old'  => $shopOld,
+                    'shop_qty_new'  => $shopNew,
+                    'store_qty_old' => $storeOld,
+                    'store_qty_new' => $storeNew,
+                ]);
+
+                // سجل الأوديت (StockAudit) بنص عربي واضح
+                StockAudit::create([
+                    'product_id'    => $product->id,
+                    'old_shop_qty'  => $shopOld,
+                    'new_shop_qty'  => $shopNew,
+                    'old_store_qty' => $storeOld,
+                    'new_store_qty' => $storeNew,
+                    'change_type'   => $direction === 'shop_to_store'
+                        ? 'تحويل من المحل للمخزن'
+                        : 'تحويل من المخزن للمحل',
+                ]);
             }
 
-            // حفظ المنتج مرة واحدة
-            $product->quantity_shop  = $shopNew;
-            $product->quantity_store = $storeNew;
-            $product->save();
-
-            // سجل الحركة (StockMovement)
-            StockMovement::create([
-                'product_id'    => $product->id,
-                'quantity'      => $qty,
-                'type'          => $direction,                 // قيم ثابتة مفيدة للتقارير
-                'note'          => null,
-                'shop_qty_old'  => $shopOld,
-                'shop_qty_new'  => $shopNew,
-                'store_qty_old' => $storeOld,
-                'store_qty_new' => $storeNew,
-            ]);
-
-            // سجل الأوديت (StockAudit) بنص عربي واضح
-            StockAudit::create([
-                'product_id'    => $product->id,
-                'old_shop_qty'  => $shopOld,
-                'new_shop_qty'  => $shopNew,
-                'old_store_qty' => $storeOld,
-                'new_store_qty' => $storeNew,
-                'change_type'   => $direction === 'shop_to_store'
-                                    ? 'تحويل من المحل للمخزن'
-                                    : 'تحويل من المخزن للمحل',
-            ]);
+            DB::commit();
+            return redirect()->route('stock.index')->with('success', 'تم تحويل المخزون بنجاح.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withErrors($e->getMessage())->withInput();
         }
-
-        DB::commit();
-        return redirect()->route('stock.index')->with('success', 'تم تحويل المخزون بنجاح.');
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        return back()->withErrors($e->getMessage())->withInput();
     }
-}
 
     public function updateStock(Request $request)
     {
@@ -155,7 +155,7 @@ public function transfer(Request $request)
                 $product->save();  // ← لا داعي لتحديث/حفظ مرتين
 
                 // سجل الحركة
-                StockMovement::create([
+                $movement =  StockMovement::create([
                     'product_id'    => $product->id,
                     'quantity'      => $qty,
                     'type'          => $direction,
@@ -165,10 +165,10 @@ public function transfer(Request $request)
                     'store_qty_old' => $storeOld,
                     'store_qty_new' => $storeNew,
                 ]);
-
                 // سجل الأوديت (قيمه صح: القديم قبل التحديث والجديد بعده)
                 StockAudit::create([
                     'product_id'    => $product->id,
+                    'movement_id' => $movement->id,
                     'old_shop_qty'  => $shopOld,
                     'new_shop_qty'  => $shopNew,
                     'old_store_qty' => $storeOld,

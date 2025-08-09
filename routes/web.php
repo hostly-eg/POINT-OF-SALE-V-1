@@ -51,6 +51,8 @@ Route::post('/pos/sell', [POSController::class, 'sell'])->name('pos.sell')->midd
 
 
 Route::get('/stock-audit', [StockAuditController::class, 'index'])->name('seals.index')->middleware('auth');
+Route::get('/stock-audits/{audit}/details', [\App\Http\Controllers\StockAuditController::class, 'details'])
+    ->name('stock-audits.details');
 
 
 

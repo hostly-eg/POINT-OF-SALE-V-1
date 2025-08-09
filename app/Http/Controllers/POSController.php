@@ -82,7 +82,7 @@ class POSController extends Controller
                 $product->save();
 
                 // سطر الفاتورة
-                $sale->items()->create([
+                $item = $sale->items()->create([
                     'product_id'     => $product->id,
                     'quantity'       => $qty,
                     'price'          => $price,
@@ -95,6 +95,7 @@ class POSController extends Controller
                 ]);
 
                 // سجلات التتبع
+
                 StockAudit::create([
                     'product_id'    => $product->id,
                     'old_shop_qty'  => $shopOld,
@@ -102,7 +103,10 @@ class POSController extends Controller
                     'old_store_qty' => $storeOld,
                     'new_store_qty' => $product->quantity_store,
                     'change_type'   => $isReturn ? 'مرتجع بيع' : 'عملية بيع',
+                    'sale_id'       => $sale->id,
+                    'sale_item_id'  => $item->id,
                 ]);
+
 
                 StockMovement::create([
                     'product_id'    => $product->id,

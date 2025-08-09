@@ -14,6 +14,9 @@ return new class extends Migration
         Schema::create('stock_audits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('sale_id')->nullable();
+            $table->unsignedBigInteger('sale_item_id')->nullable();
+            $table->unsignedBigInteger('movement_id')->nullable(); //
             $table->integer('old_shop_qty')->nullable();
             $table->integer('old_store_qty')->nullable();
             $table->integer('new_shop_qty')->nullable();

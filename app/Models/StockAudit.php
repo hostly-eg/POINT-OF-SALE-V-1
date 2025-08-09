@@ -14,6 +14,8 @@ class StockAudit extends Model
         'old_store_qty',
         'new_shop_qty',
         'new_store_qty',
+                'sale_id','sale_item_id','movement_id',
+
     ];
 
     protected $casts = [
@@ -26,4 +28,17 @@ class StockAudit extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class, 'sale_id');
+    }
+    public function saleItem()
+    {
+        return $this->belongsTo(SaleItem::class);
+    }
+    public function movement()
+    {
+        return $this->belongsTo(StockMovement::class, 'movement_id');
+    }
+
 }
