@@ -1,6 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <div class="container text-end">
         <h2>إضافة منتج</h2>
 
@@ -18,6 +27,15 @@
                     <option disabled selected>اختر القسم</option>
                     @foreach ($categories as $cat)
                         <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>السيارة</label>
+                <select name="car_id" class="form-select select2" required>
+                    <option value="">اختر السيارة</option>
+                    @foreach ($cars as $car)
+                        <option value="{{ $car->id }}">{{ $car->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -42,10 +60,20 @@
                 <input type="number" step="0.01" name="profit_margin" class="form-control" required>
             </div>
 
+            {{-- الكمية داخل المحل --}}
             <div class="mb-3">
-                <label>الكمية</label>
-                <input type="number" name="quantity" class="form-control" required>
+                <label class="form-label">الكمية داخل المحل</label>
+                <input type="number" name="quantity_shop" class="form-control" min="0"
+                    value="{{ old('quantity_shop', 0) }}" required>
             </div>
+
+            {{-- الكمية داخل المخزن --}}
+            <div class="mb-3">
+                <label class="form-label">الكمية داخل المخزن</label>
+                <input type="number" name="quantity_store" class="form-control" min="0"
+                    value="{{ old('quantity_store', 0) }}" required>
+            </div>
+
 
             <div class="mb-3">
                 <label>صورة المنتج</label>

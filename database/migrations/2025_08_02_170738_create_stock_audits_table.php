@@ -14,10 +14,11 @@ return new class extends Migration
         Schema::create('stock_audits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
-            $table->integer('old_quantity');
-            $table->integer('new_quantity');
+            $table->integer('old_shop_qty')->nullable();
+            $table->integer('old_store_qty')->nullable();
+            $table->integer('new_shop_qty')->nullable();
+            $table->integer('new_store_qty')->nullable();
             $table->string('change_type'); // "إنشاء منتج"، "إضافة مخزون"، "خصم بيع"
-            $table->integer('difference');
             $table->timestamps();
         });
     }

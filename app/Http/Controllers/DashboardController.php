@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Expense;
+use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -21,26 +22,25 @@ class DashboardController extends Controller
         $startOfWeek = Carbon::now()->startOfWeek(Carbon::SATURDAY);
         $endOfWeek = Carbon::now()->endOfWeek(Carbon::FRIDAY);
 
-        $weeklySales = SaleItem::whereHas('sale', function ($query) use ($startOfWeek, $endOfWeek) {
-                $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
-            })
-            ->sum(DB::raw('quantity * COALESCE(selling_price, 0)'));
+
+        $weeklySales = Sale::whereBetween('created_at', [$startOfWeek, $endOfWeek])
+            ->sum('paid');
 
         // ========================
         // 2. مبيعات اليوم - فقط من المبيعات
         // ========================
-        $dailySales = SaleItem::whereHas('sale', function ($query) {
-                $query->whereDate('created_at', today());
-            })
-            ->sum(DB::raw('quantity * COALESCE(selling_price, 0)'));
+        $dailySales = Sale::whereDate('created_at', today())
+            ->sum('paid');
+
 
         // ========================
         // 3. مبيعات الشهر - فقط من المبيعات
         // ========================
-        $monthlySales = SaleItem::whereHas('sale', function ($query) {
-                $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
-            })
-            ->sum(DB::raw('quantity * COALESCE(selling_price, 0)'));
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth   = Carbon::now()->endOfMonth();
+        $monthlySales = Sale::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->sum('paid');
+
 
         // ========================
         // 4. النفقات

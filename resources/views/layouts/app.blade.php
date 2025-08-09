@@ -21,11 +21,15 @@
 
 <body dir="rtl">
     <div id="app">
-        <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-            <div class="container">
-                <a class="navbar-brand font-monospace" href="{{ url('/') }}">
-                    أولاد الشيخ
-                </a>
+        <nav class="navbar navbar-expand-md navbar-primary bg-primary shadow-sm">
+            <div class="container ">
+                <marquee class="col-6 ">
+                    <a class="navbar-brand text-center text-light fw-bold fs-2 font-monospace"
+                        href="{{ url('/') }}">
+                        أولاد الشيخ للتجارة والتسويق
+                    </a>
+                </marquee>
+                
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
@@ -48,7 +52,7 @@
                             @endif
                         @else
                             <li class="nav-item dropdown">
-                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"
+                                <a id="navbarDropdown" class="nav-link dropdown-toggle text-light" href="#" role="button"
                                     data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                     {{ Auth::user()->name }}
                                 </a>
@@ -93,8 +97,11 @@
         integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous">
     </script>
     <!-- Select2 JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     @stack('scripts')
+    @yield('scripts')
 
 </body>
 

@@ -9,23 +9,23 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
-        Schema::create('sales', function (Blueprint $table) {
+        Schema::create('user_details', function (Blueprint $table) {
             $table->id();
-            $table->string('customer_name')->nullable();
-            $table->decimal('total_price', 10, 2);
-            $table->decimal('paid', 10, 2)->default(0);
-            $table->decimal('remaining', 10, 2)->default(0);
+            $table->string('name');
+            $table->string('phone');
+            $table->string('company');
             $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('sales');
+        Schema::dropIfExists('user_details');
     }
 };

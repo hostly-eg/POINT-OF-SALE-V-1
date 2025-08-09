@@ -16,6 +16,11 @@ return new class extends Migration
             $table->foreignId('sale_id')->constrained()->onDelete('cascade');
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->integer('quantity');
+            $table->enum('location', ['shop', 'store'])->default('shop'); // اتسحب منين؟
+            $table->unsignedInteger('shop_qty_old')->nullable();
+            $table->unsignedInteger('shop_qty_new')->nullable();
+            $table->unsignedInteger('store_qty_old')->nullable();
+            $table->unsignedInteger('store_qty_new')->nullable();
             $table->decimal('price', 10, 2);
             $table->decimal('selling_price', 10, 2)->default(0);
 

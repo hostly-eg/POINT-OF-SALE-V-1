@@ -56,12 +56,13 @@
 
             <div class="row" id="productList">
                 @foreach ($products as $product)
-                    <div class="col-md-3 mb-3 product-item" data-brand="{{ $product->brand_id }}"
+                    <div class="col-md-4 mb-3 product-item" data-brand="{{ $product->brand_id }}"
                         data-category="{{ $product->category_id }}">
                         <div class="card text-center"
-                            onclick="addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->price }}, {{ $product->quantity }})">
+                            onclick="addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->price }}, {{ $product->quantity_shop }})">
                             <div class="card-body  rounded-3 " style="background: #ebebeb;">
-                                <span class="badge bg-danger">الكمية: {{ $product->quantity }}</span>
+                                <span class="badge bg-danger">كمية المخزن : {{ $product->quantity_store }}</span>
+                                <span class="badge bg-danger mt-2">كمية المحل : {{ $product->quantity_shop }}</span>
                                 <img src="{{ asset('storage/' . $product->image) }}" class="img-fluid rounded my-2"
                                     style="height: 80px;">
                                 <h6 class="text-dark text-center">{{ $product->name }}</h6>
@@ -83,8 +84,7 @@
                         <th>الكمية</th>
                         <th>السعر</th>
                         <th>سعر البيع</th>
-                        <th>خصم</th>
-                        <th>ضريبة</th>
+
                         <th> الأجمالي</th>
                         <th>✖</th>
                     </tr>
@@ -111,14 +111,37 @@
 
                     <form class="col-12 " method="POST" action="{{ route('pos.sell') }}"
                         onsubmit="return prepareFormData()">
-
-                        <div class="mb-2">
-                            <input type="text" class="form-control mb-3" id="customerName" name="customer_name"
-                                placeholder="اسم العميل" required>
-                        </div>
                         @csrf
+
+                        <div class="row d-flex align-items-center">
+
+                            <div class="mb-2 col-md-6">
+                                <input class="col-12 form-control" type="number" class="form-control mb-2"
+                                    id="paidAmount" name="paid" placeholder="المدفوع" min="0">
+                            </div>
+
+                            <div class="mb-2 col-md-6">
+                                <input class="col-12 form-control" type="number" class="form-control"
+                                    id="remainingAmount" name="remaining" placeholder="المستحقات" readonly>
+
+
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <select class="form-control select2 mb-2" name="customer_name" id="customerSelect" required>
+                                <option value="">اختر العميل</option>
+                                @foreach ($users as $user)
+                                    <option value="{{ $user->name }}">{{ $user->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+
                         <input type="hidden" name="items_json" id="items_json">
-                        <button class="btn btn-outline-dark col-12">دفع </button>
+                        <input type="hidden" id="txnType" name="type" value="sale">
+                        <button type="submit" class="btn btn-secondary" id="btnReturn">مرتجع</button>
+
+                        <button type="submit" class="btn btn-outline-dark col-12" id="btnSale">دفع </button>
                     </form>
                 </div>
 
@@ -248,10 +271,23 @@
             price: item.price,
             selling_price: item.selling_price
         }));
-
         jsonInput.value = JSON.stringify(itemsData);
+
+        const totalAmount = parseFloat(document.getElementById("totalAmount").innerText) || 0;
+        const paid = parseFloat(document.getElementById("paidAmount").value) || 0;
+        const remaining = Math.max(totalAmount - paid, 0);
+
+        // حدث الفيلد المخفي المدفوع
+        document.getElementById("paid").value = paid.toFixed(2);
+        document.getElementById("remaining").value = remaining.toFixed(2);
+
         return true;
+        console.log("prepareFormData called");
+
     }
+    /* console.log("prepareFormData called"); */
+
+
 
     function printInvoice() {
         if (cart.length === 0) {
@@ -259,7 +295,9 @@
             return;
         }
 
-        const customerName = document.getElementById("customerName").value || "غير محدد";
+        const customerSelect = document.getElementById("customerSelect");
+        const customerName = customerSelect.options[customerSelect.selectedIndex]?.text || "غير محدد";
+        const paidAmount = parseFloat(document.getElementById("paidAmount").value) || 0;
 
         let totalQty = 0;
         let totalAmount = 0;
@@ -271,14 +309,16 @@
             totalAmount += subtotal;
 
             tableRows += `
-                <tr>
-                    <td>${item.name}</td>
-                    <td>${item.qty}</td>
-                    <td>${item.selling_price.toFixed(2)}</td>
-                    <td>${subtotal.toFixed(2)}</td>
-                </tr>
-            `;
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.qty}</td>
+                <td>${item.selling_price.toFixed(2)}</td>
+                <td>${subtotal.toFixed(2)}</td>
+            </tr>
+        `;
         });
+
+        const remainingAmount = totalAmount - paidAmount;
 
         const invoiceHTML = `
         <html dir="rtl">
@@ -290,7 +330,7 @@
                 th, td { border: 1px solid #000; padding: 8px; text-align: center; }
                 .totals { margin-top: 20px; }
             </style>
-            <title>اولاد الشيخ </title>
+            <title>اولاد الشيخ</title>
         </head>
         <body>
             <h2>فاتورة بيع</h2>
@@ -312,14 +352,38 @@
                 </tbody>
             </table>
 
-            <div class="totals">
-                <p><strong>إجمالي الكمية:</strong> ${totalQty}</p>
-                <p><strong>المبلغ الإجمالي:</strong> ${totalAmount.toFixed(2)} ج</p>
-            </div>
+   <table style="margin-top: 20px;width:250px">
+    <thead>
+        <tr>
+            <th>الوصف</th>
+            <th>القيمة</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>إجمالي الكمية</strong></td>
+            <td>${totalQty}</td>
+        </tr>
+        <tr>
+            <td><strong>المبلغ الإجمالي</strong></td>
+            <td>${totalAmount.toFixed(2)} ج</td>
+        </tr>
+        <tr>
+            <td><strong>المدفوع</strong></td>
+            <td>${paidAmount.toFixed(2)} ج</td>
+        </tr>
+        <tr>
+            <td><strong>المستحق</strong></td>
+            <td>${remainingAmount.toFixed(2)} ج</td>
+        </tr>
+    </tbody>
+</table>
+
 
             <p style="text-align: center; margin-top: 40px;">شكراً لتعاملكم معنا 🌟</p>
         </body>
-        </html>`;
+        </html>
+    `;
 
         const printWindow = window.open('', '_blank', 'width=800,height=900');
         printWindow.document.write(invoiceHTML);
@@ -331,6 +395,27 @@
             printWindow.close();
         }, 1000);
     }
+</script>
+<script>
+    $('#paidAmount').on('input', function() {
+        const total = parseFloat($('#totalAmount').text()) || 0;
+        const paid = parseFloat($(this).val()) || 0;
+        const remaining = Math.max(total - paid, 0);
+        $('#remainingAmount').val(remaining.toFixed(2));
+        $('#remaining').val(remaining.toFixed(2)); // ← مهم جدًا
+    });
+</script>
+<script>
+    // نفس الـ submit اللي عندك للفاتورة، بس بنغيّر النوع قبل الإرسال
+    document.getElementById('btnSale').addEventListener('click', () => {
+        document.getElementById('txnType').value = 'sale';
+        submitPos(); // دالة الإرسال الحالية اللي بتبعت items_json, paid, remaining ...
+    });
+
+    document.getElementById('btnReturn').addEventListener('click', () => {
+        document.getElementById('txnType').value = 'return';
+        submitPos();
+    });
 </script>
 
 {{-- @endsection --}}

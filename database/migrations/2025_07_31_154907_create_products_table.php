@@ -16,9 +16,11 @@ return new class extends Migration
             $table->string('name'); // اسم المنتج
             $table->unsignedBigInteger('brand_id'); // مرتبط بالبراند
             $table->unsignedBigInteger('category_id'); // مرتبط بالقسم
+            $table->unsignedBigInteger('car_id'); // مرتبط بالقسم
             $table->decimal('price', 10, 2); // السعر
             $table->decimal('profit_margin', 5, 2); // هامش الربح
-            $table->integer('quantity')->default(0); // ✅ الكمية - تبدأ من صفر
+            $table->unsignedInteger('quantity_shop')->default(0);   // كمية المحل
+            $table->unsignedInteger('quantity_store')->default(0);  // كمية المخزن
             $table->string('image')->nullable(); // الصورة
             $table->timestamps();
         });

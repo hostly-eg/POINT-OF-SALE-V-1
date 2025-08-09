@@ -10,19 +10,28 @@ class Product extends Model
         'name',
         'brand_id',
         'category_id',
+        'car_id',
         'price',
         'profit_margin',
-        'quantity',
-        'image'
+        'quantity_shop',
+        'quantity_store',
+        'image',
     ];
 
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
-
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+    public function car()
+    {
+        return $this->belongsTo(Car::class);
+    }
+    public function getTotalQuantityAttribute()
+    {
+        return (int) $this->quantity_shop + (int) $this->quantity_store;
     }
 }

@@ -9,17 +9,22 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-public function up()
-{
-    Schema::create('stock_movements', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('product_id')->constrained()->onDelete('cascade');
-        $table->integer('quantity');
-        $table->enum('type', ['in', 'out']); // in = إضافة، out = سحب
-        $table->string('note')->nullable();
-        $table->timestamps();
-    });
-}
+    public function up()
+    {
+        Schema::create('stock_movements', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->integer('quantity');
+            $table->string('type', 50 , ['in', 'out']); // in = إضافة، out = سحب\
+            $table->integer('shop_qty_old')->default(0);
+            $table->integer('shop_qty_new')->default(0);
+            $table->integer('store_qty_old')->default(0);
+            $table->integer('store_qty_new')->default(0);
+
+            $table->string('note')->nullable();
+            $table->timestamps();
+        });
+    }
 
 
     /**
